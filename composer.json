@@ -2,7 +2,8 @@
   "name": "mauro.gadaleta/tv-remote",
   "require": {
     "symfony/console": "^3.2",
-    "symfony/process": "^3.2"
+    "symfony/process": "^3.2",
+    "guzzlehttp/guzzle": "~6.0"
   },
   "authors": [
     {

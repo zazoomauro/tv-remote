@@ -2,6 +2,7 @@
 
 namespace Tv\Command;
 
+use GuzzleHttp\Client;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -10,11 +11,6 @@ use Symfony\Component\Process\Process;
 
 class OpenChannelCommand extends Command
 {
-    static private $channels = [
-        'Antena3' => 'http://a3live-lh.akamaihd.net/i/antena3_1@35248/master.m3u8',
-        'LaSexta' => 'http://a3live-lh.akamaihd.net/i/lasexta_1@35272/master.m3u8'
-    ];
-
     protected function configure()
     {
         $this
@@ -22,11 +18,32 @@ class OpenChannelCommand extends Command
             ->setDescription('Opens a new channel');
     }
 
+    /**
+     * @return Client
+     */
+    private function getClient()
+    {
+        return new Client([
+            'base_uri' => 'https://gist.githubusercontent.com',
+            'timeout' => 2.0,
+        ]);
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $helper = $this->getHelper('question');
 
-        $question = new ChoiceQuestion('Please select the channel', ['Antena3', 'LaSexta'], 0);
+        $response = $this->getClient()->get('izqui/56c5ff8e7a1aeaf1efd9/raw/69f328fa792df6506ddaee0f9e813960636a2efd/channels.json');
+        $body = json_decode($response->getBody(), true);
+
+        $channels = [];
+        foreach ($body as $item) {
+            if (isset($item[7])) {
+                array_push($channels, $item[5]);
+            }
+        }
+
+        $question = new ChoiceQuestion('Please select the channel', $channels, 0);
         $question->setErrorMessage('Selected channel %s is invalid.');
 
         $channel = $helper->ask($input, $output, $question);
@@ -34,7 +51,7 @@ class OpenChannelCommand extends Command
         $output->writeln("<info>You have just selected $channel</info>");
 
         $vlcPath = '/Applications/VLC.app/Contents/MacOS/VLC';
-        $channelUrl = self::$channels[$channel];
+        $channelUrl = $this->getChannelUrl($channel);
         $process = new Process("{$vlcPath} \"{$channelUrl}\"");
         $process->start();
         $process->wait(function ($type, $buffer) use ($output) {
@@ -44,5 +61,17 @@ class OpenChannelCommand extends Command
                 $output->writeln("<info>$buffer</info>");
             }
         });
+    }
+
+    private function getChannelUrl($channel)
+    {
+        $response = $this->getClient()->get('izqui/56c5ff8e7a1aeaf1efd9/raw/69f328fa792df6506ddaee0f9e813960636a2efd/channels.json');
+        $body = json_decode($response->getBody(), true);
+
+        foreach ($body as $item) {
+            if ($item[5] === $channel) {
+                return $item[7];
+            }
+        }
     }
 }
