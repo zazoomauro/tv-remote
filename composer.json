@@ -1,6 +1,5 @@
 {
   "name": "zazoomauro/tv-remote",
-  "version": "1.0.0",
   "require": {
     "symfony/console": "^3.2",
     "symfony/process": "^3.2",

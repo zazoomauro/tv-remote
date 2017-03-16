@@ -5,3 +5,5 @@
 - Initial commit
 - LICENCE
 - Badges
+### Remove
+- Removing version from composer json file
