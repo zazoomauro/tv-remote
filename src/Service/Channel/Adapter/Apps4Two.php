@@ -2,8 +2,8 @@
 
 namespace Tv\Service\Channel\Adapter;
 
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
+use GuzzleHttp\Client;
+use Symfony\Component\Filesystem\Filesystem;
 
 final class Apps4Two implements AdapterInterface
 {
@@ -12,14 +12,11 @@ final class Apps4Two implements AdapterInterface
 
     private function downloadChannels()
     {
-        $tmpFilePath = self::TMP_FILE_PATH;
-        $endpoint = self::ENDPOINT;
-        $downloadTmpFileProcess = new Process("wget -O $tmpFilePath -q \"$endpoint\"");
-        $downloadTmpFileProcess->run();
+        $client = new Client();
+        $channels = (string)$client->get(self::ENDPOINT)->getBody();
 
-        if (!$downloadTmpFileProcess->isSuccessful()) {
-            throw new ProcessFailedException($downloadTmpFileProcess);
-        }
+        $fs = new Filesystem();
+        $fs->dumpFile(self::TMP_FILE_PATH, $channels);
     }
 
     /**

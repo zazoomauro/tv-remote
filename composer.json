@@ -3,7 +3,9 @@
   "require": {
     "symfony/console": "^3.2",
     "symfony/process": "^3.2",
-    "cocur/background-process": "^0.7.0"
+    "cocur/background-process": "^0.7.0",
+    "guzzlehttp/guzzle": "^6.2",
+    "symfony/filesystem": "^3.2"
   },
   "authors": [
     {
