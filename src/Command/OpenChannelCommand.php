@@ -2,12 +2,12 @@
 
 namespace Tv\Command;
 
-use GuzzleHttp\Client;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
-use Symfony\Component\Process\Process;
+use Tv\Service\Channel\Adapter\Apps4Two;
+use Tv\Service\M3u8\Adapter\Vlc;
 
 class OpenChannelCommand extends Command
 {
@@ -19,59 +19,34 @@ class OpenChannelCommand extends Command
     }
 
     /**
-     * @return Client
+     * @return Apps4Two
      */
-    private function getClient()
+    private function getChannelAdapter()
     {
-        return new Client([
-            'base_uri' => 'https://gist.githubusercontent.com',
-            'timeout' => 2.0,
-        ]);
+        return new Apps4Two();
+    }
+
+    /**
+     * @return Vlc
+     */
+    private function getM3U8Adapter()
+    {
+        return new Vlc();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $helper = $this->getHelper('question');
 
-        $response = $this->getClient()->get('izqui/56c5ff8e7a1aeaf1efd9/raw/69f328fa792df6506ddaee0f9e813960636a2efd/channels.json');
-        $body = json_decode($response->getBody(), true);
-
-        $channels = [];
-        foreach ($body as $item) {
-            if (isset($item[7])) {
-                array_push($channels, $item[5]);
-            }
-        }
-
-        $question = new ChoiceQuestion('Please select the channel', $channels, 0);
+        $question = new ChoiceQuestion('Please select the channel', $this->getChannelAdapter()->getListOfChannels(), 0);
         $question->setErrorMessage('Selected channel %s is invalid.');
 
         $channel = $helper->ask($input, $output, $question);
 
         $output->writeln("<info>You have just selected $channel</info>");
 
-        $vlcPath = '/Applications/VLC.app/Contents/MacOS/VLC';
-        $channelUrl = $this->getChannelUrl($channel);
-        $process = new Process("{$vlcPath} \"{$channelUrl}\"");
-        $process->start();
-        $process->wait(function ($type, $buffer) use ($output) {
-            if (Process::ERR === $type) {
-                $output->writeln("<error>$buffer</error>");
-            } else {
-                $output->writeln("<info>$buffer</info>");
-            }
-        });
-    }
+        $this->getM3U8Adapter()->openM3u8($this->getChannelAdapter()->getChannelUrl($channel));
 
-    private function getChannelUrl($channel)
-    {
-        $response = $this->getClient()->get('izqui/56c5ff8e7a1aeaf1efd9/raw/69f328fa792df6506ddaee0f9e813960636a2efd/channels.json');
-        $body = json_decode($response->getBody(), true);
-
-        foreach ($body as $item) {
-            if ($item[5] === $channel) {
-                return $item[7];
-            }
-        }
+        $output->writeln('<info>Opening M3U8...</info>');
     }
 }
