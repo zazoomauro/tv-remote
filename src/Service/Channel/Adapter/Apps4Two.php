@@ -7,19 +7,28 @@ use Symfony\Component\Process\Process;
 
 final class Apps4Two implements AdapterInterface
 {
-    /**
-     * @return string[]
-     */
-    public function getListOfChannels(): array
+    const ENDPOINT = 'http://www.apps4two.com/apps/tvonline/ch_channel.php';
+    const TMP_FILE_PATH = __DIR__ . '/../../../../tmp/channels';
+
+    private function downloadChannels()
     {
-        $downloadTmpFileProcess = new Process("wget -O /tmp/channels -q \"http://www.apps4two.com/apps/tvonline/ch_channel.php\"");
+        $tmpFilePath = self::TMP_FILE_PATH;
+        $endpoint = self::ENDPOINT;
+        $downloadTmpFileProcess = new Process("wget -O $tmpFilePath -q \"$endpoint\"");
         $downloadTmpFileProcess->run();
 
         if (!$downloadTmpFileProcess->isSuccessful()) {
             throw new ProcessFailedException($downloadTmpFileProcess);
         }
+    }
 
-        $jsonString = file_get_contents("/tmp/channels");
+    /**
+     * @return string[]
+     */
+    public function getListOfChannels(): array
+    {
+        $this->downloadChannels();
+        $jsonString = file_get_contents(self::TMP_FILE_PATH);
         $json = json_decode($jsonString, true);
 
         $channels = [];
@@ -39,7 +48,12 @@ final class Apps4Two implements AdapterInterface
      */
     public function getChannelUrl(string $channelUrl): string
     {
-        $jsonString = file_get_contents("/tmp/channels");
+        try {
+            $jsonString = file_get_contents(self::TMP_FILE_PATH);
+        } catch (\Exception $exception) {
+            $this->downloadChannels();
+            $jsonString = file_get_contents(self::TMP_FILE_PATH);
+        }
         $json = json_decode($jsonString, true);
 
         foreach ($json as $item) {

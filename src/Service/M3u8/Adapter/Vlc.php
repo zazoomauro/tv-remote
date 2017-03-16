@@ -9,7 +9,7 @@ class Vlc implements AdapterInterface
     /**
      * @param string $url
      */
-    public function openM3u8(string $url): void
+    public function openM3u8(string $url)
     {
         $vlcPath = '/Applications/VLC.app/Contents/MacOS/VLC';
 
